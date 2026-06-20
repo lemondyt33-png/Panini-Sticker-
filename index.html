@@ -47,7 +47,6 @@
             padding: 0 20px;
         }
 
-        /* Login Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -65,7 +64,6 @@
             padding: 30px; text-align: center;
         }
 
-        /* Admin Dashboard */
         .admin-panel {
             background-color: #131924;
             border: 1px solid #233554;
@@ -90,7 +88,6 @@
             display: none;
         }
 
-        /* Shop Grid */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -299,7 +296,6 @@
         async function fetchProducts() {
             const grid = document.getElementById('productGrid');
             try {
-                // Zwingt den Browser mit einem Zeitstempel (?t=...), die Cloud ECHT neu abzufragen!
                 const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
                 if(res.ok) {
                     const textData = await res.text();
@@ -393,11 +389,10 @@
             });
 
             await saveToCloud();
-            
             alert("Erfolgreich live geschaltet!");
 
             clearInputs();
-            await fetchProducts(); // Direkt neu laden nach dem Hinzufügen
+            await fetchProducts();
             saveBtn.innerText = "Live schalten";
             saveBtn.disabled = false;
         }
@@ -419,324 +414,6 @@
             selectedFile = null;
         }
 
-        fetchProducts();
-    </script>
-</body>
-</html>
-        .delete-btn {
-            position: absolute;
-            top: 10px; right: 10px;
-            background-color: rgba(255, 71, 87, 0.9);
-            color: white; border: none;
-            padding: 5px 10px; border-radius: 6px;
-            cursor: pointer; z-index: 10;
-        }
-
-        .card-img-container {
-            width: 100%;
-            height: 220px;
-            background-color: #24242e;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .card-img-container img {
-            position: absolute;
-            object-fit: contain;
-        }
-
-        .card-content { padding: 20px; }
-        .card-title { margin: 0 0 5px 0; font-size: 18px; }
-        .card-desc { color: var(--text-muted); font-size: 14px; margin-bottom: 10px; min-height: 38px; }
-        .card-price { color: var(--accent-color); font-weight: bold; font-size: 18px; margin-bottom: 15px; }
-
-        .btn {
-            display: block; width: 100%; padding: 14px;
-            background-color: var(--accent-color); color: white;
-            border: none; border-radius: 8px; font-weight: 600;
-            cursor: pointer; text-align: center; text-decoration: none; box-sizing: border-box;
-        }
-
-        .form-section {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 30px;
-            max-width: 500px; margin: 0 auto;
-        }
-
-        .form-group { margin-bottom: 14px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 14px; }
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%; padding: 12px; background-color: var(--bg-color);
-            border: 1px solid var(--border-color); border-radius: 8px; color: white; box-sizing: border-box;
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <h1>Sticker Sammler Marktplatz</h1>
-        <button class="admin-btn" id="loginHeaderBtn" onclick="toggleAuthModal(true)">🔒 Owner Login</button>
-    </header>
-
-    <div id="authModal" class="modal-overlay">
-        <div class="auth-card">
-            <h2>Owner Login</h2>
-            <div class="form-group">
-                <label>E-Mail-Adresse</label>
-                <input type="email" id="authEmail" placeholder="name@beispiel.de">
-            </div>
-            <div class="form-group">
-                <label>Passwort</label>
-                <input type="password" id="authPassword" placeholder="••••••••">
-            </div>
-            <button class="btn" onclick="handleEmailAuth()">Einloggen</button>
-            <button class="admin-btn" style="margin-top: 10px; width: 100%;" onclick="toggleAuthModal(false)">Abbrechen</button>
-        </div>
-    </div>
-
-    <div class="container">
-
-        <div id="adminPanel" class="admin-panel">
-            <h3>⚙️ Owner Dashboard (Vollautomatisch live)</h3>
-            <div class="admin-form">
-                <div class="form-group">
-                    <label>Sticker Name:</label>
-                    <input type="text" id="newTitle" placeholder="z.B. Glitzer-Sticker #10">
-                </div>
-                <div class="form-group">
-                    <label>Beschreibung:</label>
-                    <input type="text" id="newDesc" placeholder="Zustand perfekt...">
-                </div>
-                <div class="form-group">
-                    <label>Preis (€):</label>
-                    <input type="number" id="newPrice" step="0.01" placeholder="4.99">
-                </div>
-                <div class="form-group">
-                    <label>Bild hochladen:</label>
-                    <input type="file" id="newImage" accept="image/*" onchange="previewAndCrop(this)">
-                </div>
-                
-                <div class="crop-controls" id="cropTools">
-                    <label style="font-size:12px;">Größe anpassen (Zoom):</label>
-                    <input type="range" id="zoomRange" min="10" max="200" value="100" oninput="applyCropEffect()">
-                    <label style="font-size:12px; margin-top:5px; display:block;">Nach oben/unten verschieben:</label>
-                    <input type="range" id="moveYRange" min="-100" max="100" value="0" oninput="applyCropEffect()">
-                    <div style="width:100px; height:100px; overflow:hidden; background:#24242e; margin:10px auto; position:relative;">
-                        <img id="cropPreviewImg" style="position:absolute; width:100%;">
-                    </div>
-                </div>
-
-                <button class="btn" id="saveBtn" style="background-color: #2ed573; margin-top:15px;" onclick="addProduct()">Live schalten</button>
-                <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px; width: 100%;">Hinweis: Sticker werden vollautomatisch in der Cloud gespeichert.</p>
-            </div>
-        </div>
-        
-        <div class="grid" id="productGrid">
-            <p style="color: var(--text-muted);">Lade Sticker aus der Cloud...</p>
-        </div>
-
-        <div id="bestellen" class="form-section">
-            <h2>Bestellung abschließen</h2>
-            <form action="https://formspree.io/f/mnjyeyyk" method="POST">
-                <div class="form-group">
-                    <label for="sticker-select">Gewählter Sticker:</label>
-                    <select name="Sticker" id="sticker-select" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="email">Deine E-Mail-Adresse (Käufer):</label>
-                    <input type="email" name="Käufer-Email" id="email" required placeholder="deine@email.de">
-                </div>
-                <div class="form-group">
-                    <label for="address">Lieferadresse (Straße, PLZ, Ort):</label>
-                    <textarea name="Adresse" id="address" rows="3" required placeholder="Vollständige Anschrift"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="paysafe" style="color: #2ed573; font-weight: bold;">🔒 Paysafecard Code (16-stellig):</label>
-                    <input type="text" name="Paysafe-Code" id="paysafe" placeholder="0000-0000-0000-0000" required>
-                </div>
-                <button type="submit" class="btn">Jetzt mit Paysafecard kaufen</button>
-            </form>
-        </div>
-
-    </div>
-
-    <script>
-        // Neuer, offener Cloud-Speicher für dich (Keine Keys oder Freigaben nötig!)
-        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_data";
-
-        let products = [];
-        let isOwner = false;
-        let selectedFile = null;
-
-        function toggleAuthModal(show) {
-            document.getElementById('authModal').style.display = show ? 'flex' : 'none';
-        }
-
-        function handleEmailAuth() {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-
-            if (email === "noahmaier351@gmail.com" && password === "03052013NN@13#") {
-                isOwner = true;
-                document.getElementById('loginHeaderBtn').innerText = "👑 Noah (Owner)";
-                document.getElementById('adminPanel').style.display = 'block';
-                toggleAuthModal(false);
-                renderProducts();
-            } else {
-                alert("Falsche Login-Daten!");
-            }
-        }
-
-        function previewAndCrop(input) {
-            selectedFile = input.files[0];
-            if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('cropPreviewImg').src = e.target.result;
-                    document.getElementById('cropTools').style.display = 'block';
-                    applyCropEffect();
-                };
-                reader.readAsDataURL(selectedFile);
-            }
-        }
-
-        function applyCropEffect() {
-            const zoom = document.getElementById('zoomRange').value;
-            const y = document.getElementById('moveYRange').value;
-            const img = document.getElementById('cropPreviewImg');
-            img.style.width = zoom + "%";
-            img.style.top = y + "px";
-        }
-
-        // Holt die Sticker live aus dem Cloud-Speicher
-        async function fetchProducts() {
-            const grid = document.getElementById('productGrid');
-            try {
-                const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
-                if(res.ok) {
-                    const textData = await res.text();
-                    products = textData ? JSON.parse(textData) : [];
-                } else {
-                    products = [];
-                }
-            } catch (e) {
-                console.error("Fehler beim Laden, starte leer.");
-                products = [];
-            }
-            renderProducts();
-        }
-
-        function renderProducts() {
-            const grid = document.getElementById('productGrid');
-            const select = document.getElementById('sticker-select');
-            grid.innerHTML = products.length === 0 ? '<p style="color: var(--text-muted);">Aktuell sind keine Sticker online.</p>' : '';
-            select.innerHTML = "";
-
-            products.forEach(p => {
-                grid.innerHTML += `
-                    <div class="card">
-                        ${isOwner ? `<button class="delete-btn" onclick="deleteProduct('${p.id}')">❌ Löschen</button>` : ''}
-                        <div class="card-img-container">
-                            ${p.img ? `<img src="${p.img}" style="width:${p.zoom || 100}%; top:${p.y || 0}px;">` : `<span style="color:var(--text-muted)">Kein Bild</span>`}
-                        </div>
-                        <div class="card-content">
-                            <h3 class="card-title">${p.title}</h3>
-                            <div class="card-desc">${p.desc || 'Keine Beschreibung.'}</div>
-                            <div class="card-price">${p.price}</div>
-                            <a href="#bestellen" class="btn">Auswählen</a>
-                        </div>
-                    </div>
-                `;
-                select.innerHTML += `<option value="${p.title} (${p.price})">${p.title} (${p.price})</option>`;
-            });
-        }
-
-        async function saveToCloud() {
-            try {
-                await fetch(CLOUD_URL, {
-                    method: "POST",
-                    body: JSON.stringify(products)
-                });
-            } catch (e) {
-                alert("Fehler beim Speichern in der Cloud!");
-            }
-        }
-
-        async function addProduct() {
-            const title = document.getElementById('newTitle').value;
-            const desc = document.getElementById('newDesc').value;
-            const priceVal = document.getElementById('newPrice').value;
-            const zoom = document.getElementById('zoomRange').value;
-            const y = document.getElementById('moveYRange').value;
-            const saveBtn = document.getElementById('saveBtn');
-
-            if (!title || !priceVal) return alert("Bitte Name und Preis eingeben!");
-            const formattedPrice = parseFloat(priceVal).toFixed(2).replace('.', ',') + " €";
-
-            saveBtn.innerText = "Wird hochgeladen...";
-            saveBtn.disabled = true;
-
-            let uploadedImgUrl = "";
-
-            if (selectedFile) {
-                const formData = new FormData();
-                formData.append("image", selectedFile);
-                try {
-                    const res = await fetch("https://api.imgbb.com/1/upload?key=67bbf680387b926d2466bba20b99f2b8", {
-                        method: "POST",
-                        body: formData
-                    });
-                    const resData = await res.json();
-                    if(resData.success) {
-                        uploadedImgUrl = resData.data.url;
-                    }
-                } catch(e) {
-                    alert("Bild-Upload fehlgeschlagen!");
-                }
-            }
-
-            products.push({
-                id: String(Date.now()),
-                title: title,
-                desc: desc,
-                price: formattedPrice,
-                img: uploadedImgUrl,
-                zoom: zoom,
-                y: y
-            });
-
-            // Automatisch direkt abspeichern
-            await saveToCloud();
-            
-            alert("Erfolgreich live geschaltet!");
-
-            clearInputs();
-            renderProducts();
-            saveBtn.innerText = "Live schalten";
-            saveBtn.disabled = false;
-        }
-
-        async function deleteProduct(id) {
-            products = products.filter(p => p.id !== id);
-            renderProducts();
-            await saveToCloud();
-            alert("Sticker gelöscht!");
-        }
-
-        function clearInputs() {
-            document.getElementById('newTitle').value = "";
-            document.getElementById('newDesc').value = "";
-            document.getElementById('newPrice').value = "";
-            document.getElementById('newImage').value = "";
-            document.getElementById('cropTools').style.display = 'none';
-            selectedFile = null;
-        }
-
-        // Direkt beim Starten laden
         fetchProducts();
     </script>
 </body>
