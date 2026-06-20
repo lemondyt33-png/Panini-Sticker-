@@ -247,14 +247,13 @@
     </div>
 
     <script>
-        // Komplett neuer, frischer Cloud-Pfad
-        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_v3";
+        // Sichere Cloud-Adresse
+        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_final";
 
         let products = [];
         let isOwner = false;
         let selectedFile = null;
 
-        // Login-Merker auslesen, damit du eingeloggt bleibst!
         if (localStorage.getItem('sticker_is_owner') === 'true') {
             isOwner = true;
             document.addEventListener("DOMContentLoaded", () => {
@@ -313,11 +312,20 @@
                 if(res.ok) {
                     const textData = await res.text();
                     products = textData ? JSON.parse(textData) : [];
-                } else {
-                    products = [];
                 }
             } catch (e) {
-                products = [];
+                console.log("Fehler beim Laden, erstelle Standardliste.");
+            }
+            
+            // Falls die Liste komplett leer ist, fügen wir einen Beispiel-Sticker ein, damit die Seite nicht weiß bleibt!
+            if (products.length === 0) {
+                products = [{
+                    id: "default",
+                    title: "Willkommen auf dem Marktplatz",
+                    desc: "Logge dich oben ein, um den ersten echten Sticker zu erstellen!",
+                    price: "0,00 €",
+                    img: ""
+                }];
             }
             renderProducts();
         }
@@ -327,13 +335,13 @@
             const select = document.getElementById('sticker-select');
             if(!grid || !select) return;
 
-            grid.innerHTML = products.length === 0 ? '<p style="color: var(--text-muted);">Aktuell sind keine Sticker online.</p>' : '';
+            grid.innerHTML = "";
             select.innerHTML = "";
 
             products.forEach(p => {
                 grid.innerHTML += `
                     <div class="card">
-                        ${isOwner ? `<button class="delete-btn" onclick="deleteProduct('${p.id}')">❌ Löschen</button>` : ''}
+                        ${isOwner && p.id !== 'default' ? `<button class="delete-btn" onclick="deleteProduct('${p.id}')">❌ Löschen</button>` : ''}
                         <div class="card-img-container">
                             ${p.img ? `<img src="${p.img}" style="width:${p.zoom || 100}%; top:${p.y || 0}px;">` : `<span style="color:var(--text-muted)">Kein Bild</span>`}
                         </div>
@@ -345,7 +353,9 @@
                         </div>
                     </div>
                 `;
-                select.innerHTML += `<option value="${p.title} (${p.price})">${p.title} (${p.price})</option>`;
+                if(p.id !== 'default') {
+                    select.innerHTML += `<option value="${p.title} (${p.price})">${p.title} (${p.price})</option>`;
+                }
             });
         }
 
@@ -355,8 +365,10 @@
                     method: "POST",
                     body: JSON.stringify(products)
                 });
+                return true;
             } catch (e) {
-                console.error("Cloud-Fehler!");
+                alert("Cloud-Speicher-Fehler!");
+                return false;
             }
         }
 
@@ -380,7 +392,6 @@
                 const formData = new FormData();
                 formData.append("image", selectedFile);
                 try {
-                    // Der Upload wird jetzt ERZWUNGEN abgewartet (await)
                     const res = await fetch("https://api.imgbb.com/1/upload?key=67bbf680387b926d2466bba20b99f2b8", {
                         method: "POST",
                         body: formData
@@ -390,9 +401,12 @@
                         uploadedImgUrl = resData.data.url;
                     }
                 } catch(e) {
-                    alert("Bild-Server meldet Fehler. Sticker wird ohne Bild erstellt.");
+                    console.error("Bild-Server Fehler.");
                 }
             }
+
+            // Falls der Standard-Platzhalter noch drin ist, löschen wir ihn vor dem ersten echten Sticker
+            products = products.filter(p => p.id !== 'default');
 
             products.push({
                 id: String(Date.now()),
@@ -404,9 +418,10 @@
                 y: y
             });
 
-            // Erst speichern, dann fertig melden!
-            await saveToCloud();
-            alert("Erfolgreich erstellt und live geschaltet!");
+            const success = await saveToCloud();
+            if(success) {
+                alert("Erfolgreich erstellt und live geschaltet!");
+            }
 
             clearInputs();
             await fetchProducts();
@@ -432,7 +447,6 @@
             selectedFile = null;
         }
 
-        // Beim Start direkt laden
         fetchProducts();
     </script>
 </body>
