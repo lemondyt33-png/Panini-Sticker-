@@ -126,6 +126,8 @@
         .card-img-container img {
             position: absolute;
             object-fit: contain;
+            width: 100%;
+            height: 100%;
         }
 
         .card-content { padding: 20px; }
@@ -206,7 +208,7 @@
                     <label style="font-size:12px; margin-top:5px; display:block;">Nach oben/unten verschieben:</label>
                     <input type="range" id="moveYRange" min="-100" max="100" value="0" oninput="applyCropEffect()">
                     <div style="width:100px; height:100px; overflow:hidden; background:#24242e; margin:10px auto; position:relative;">
-                        <img id="cropPreviewImg" style="position:absolute; width:100%;">
+                        <img id="cropPreviewImg" style="position:absolute;">
                     </div>
                 </div>
 
@@ -245,11 +247,22 @@
     </div>
 
     <script>
-        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_data";
+        // Aktualisierte, saubere Cloud-Zuweisung
+        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_v2";
 
         let products = [];
         let isOwner = false;
         let selectedFile = null;
+
+        // Prüfen, ob der Nutzer schon einmal eingeloggt war (Session-Speicher)
+        if (localStorage.getItem('sticker_is_owner') === 'true') {
+            isOwner = true;
+            setTimeout(() => {
+                document.getElementById('loginHeaderBtn').innerText = "👑 Noah (Owner)";
+                document.getElementById('adminPanel').style.display = 'block';
+                renderProducts();
+            }, 300);
+        }
 
         function toggleAuthModal(show) {
             document.getElementById('authModal').style.display = show ? 'flex' : 'none';
@@ -261,6 +274,7 @@
 
             if (email === "noahmaier351@gmail.com" && password === "03052013NN@13#") {
                 isOwner = true;
+                localStorage.setItem('sticker_is_owner', 'true');
                 document.getElementById('loginHeaderBtn').innerText = "👑 Noah (Owner)";
                 document.getElementById('adminPanel').style.display = 'block';
                 toggleAuthModal(false);
@@ -275,9 +289,10 @@
             if (selectedFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('cropPreviewImg').src = e.target.result;
+                    const img = document.getElementById('cropPreviewImg');
+                    img.src = e.target.result;
                     document.getElementById('cropTools').style.display = 'block';
-                    applyCropEffect();
+                    setTimeout(applyCropEffect, 50);
                 };
                 reader.readAsDataURL(selectedFile);
             }
@@ -287,14 +302,13 @@
             const zoom = document.getElementById('zoomRange').value;
             const y = document.getElementById('moveYRange').value;
             const img = document.getElementById('cropPreviewImg');
-            if(img) {
+            if(img && img.src) {
                 img.style.width = zoom + "%";
                 img.style.top = y + "px";
             }
         }
 
         async function fetchProducts() {
-            const grid = document.getElementById('productGrid');
             try {
                 const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
                 if(res.ok) {
@@ -304,6 +318,7 @@
                     products = [];
                 }
             } catch (e) {
+                console.log("Cloud temporär leer.");
                 products = [];
             }
             renderProducts();
@@ -312,6 +327,8 @@
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             const select = document.getElementById('sticker-select');
+            if(!grid || !select) return;
+
             grid.innerHTML = products.length === 0 ? '<p style="color: var(--text-muted);">Aktuell sind keine Sticker online.</p>' : '';
             select.innerHTML = "";
 
@@ -320,7 +337,7 @@
                     <div class="card">
                         ${isOwner ? `<button class="delete-btn" onclick="deleteProduct('${p.id}')">❌ Löschen</button>` : ''}
                         <div class="card-img-container">
-                            ${p.img ? `<img src="${p.img}" style="width:${p.zoom || 100}%; top:${p.y || 0}px;">` : `<span style="color:var(--text-muted)">Kein Bild</span>`}
+                            ${p.img ? `<img src="${p.img}" style="width:${p.zoom || 100}%; top:${p.y || 0}px; object-fit: contain;">` : `<span style="color:var(--text-muted)">Kein Bild</span>`}
                         </div>
                         <div class="card-content">
                             <h3 class="card-title">${p.title}</h3>
@@ -341,7 +358,7 @@
                     body: JSON.stringify(products)
                 });
             } catch (e) {
-                alert("Fehler beim Speichern in der Cloud!");
+                alert("Cloud-Fehler beim Speichern!");
             }
         }
 
@@ -356,7 +373,7 @@
             if (!title || !priceVal) return alert("Bitte Name und Preis eingeben!");
             const formattedPrice = parseFloat(priceVal).toFixed(2).replace('.', ',') + " €";
 
-            saveBtn.innerText = "Wird hochgeladen...";
+            saveBtn.innerText = "Bild wird hochgeladen...";
             saveBtn.disabled = true;
 
             let uploadedImgUrl = "";
@@ -365,16 +382,17 @@
                 const formData = new FormData();
                 formData.append("image", selectedFile);
                 try {
+                    // Nutzung eines stabilen, externen Bild-Hosters
                     const res = await fetch("https://api.imgbb.com/1/upload?key=67bbf680387b926d2466bba20b99f2b8", {
                         method: "POST",
                         body: formData
                     });
                     const resData = await res.json();
-                    if(resData.success) {
+                    if(resData && resData.success) {
                         uploadedImgUrl = resData.data.url;
                     }
                 } catch(e) {
-                    console.error("Bild-Upload fehlgeschlagen.");
+                    alert("Bild konnte nicht hochgeladen werden. Sticker wird ohne Bild erstellt.");
                 }
             }
 
@@ -389,7 +407,7 @@
             });
 
             await saveToCloud();
-            alert("Erfolgreich live geschaltet!");
+            alert("Erfolgreich erstellt und live geschaltet!");
 
             clearInputs();
             await fetchProducts();
@@ -409,6 +427,7 @@
             document.getElementById('newDesc').value = "";
             document.getElementById('newPrice').value = "";
             document.getElementById('newImage').value = "";
+            document.getElementById('cropPreviewImg').src = "";
             const tools = document.getElementById('cropTools');
             if(tools) tools.style.display = 'none';
             selectedFile = null;
