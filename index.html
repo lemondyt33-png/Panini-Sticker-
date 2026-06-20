@@ -164,6 +164,7 @@
         <button class="admin-btn" id="loginHeaderBtn" onclick="toggleAuthModal(true)">🔒 Owner Login</button>
     </header>
 
+    <!-- AUTH MODAL -->
     <div id="authModal" class="modal-overlay">
         <div class="auth-card">
             <h2>Owner Login</h2>
@@ -182,6 +183,7 @@
 
     <div class="container">
 
+        <!-- OWNER DASHBOARD -->
         <div id="adminPanel" class="admin-panel">
             <h3>⚙️ Owner Dashboard (Vollautomatisch live)</h3>
             <div class="admin-form">
@@ -217,10 +219,12 @@
             </div>
         </div>
         
+        <!-- PRODUKT GRID -->
         <div class="grid" id="productGrid">
             <p style="color: var(--text-muted);">Lade Sticker aus der Cloud...</p>
         </div>
 
+        <!-- BESTELLFORMULAR -->
         <div id="bestellen" class="form-section">
             <h2>Bestellung abschließen</h2>
             <form action="https://formspree.io/f/mnjyeyyk" method="POST">
@@ -247,13 +251,14 @@
     </div>
 
     <script>
-        // Sichere Cloud-Adresse
-        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_final";
+        // Eine neue, komplett saubere Cloud-Zuweisung
+        const CLOUD_URL = "https://kvdb.io/6v3N671fB8ZfU9mH2nL8aK/noah_sticker_v4";
 
         let products = [];
         let isOwner = false;
         let selectedFile = null;
 
+        // Login-Status merken
         if (localStorage.getItem('sticker_is_owner') === 'true') {
             isOwner = true;
             document.addEventListener("DOMContentLoaded", () => {
@@ -311,21 +316,12 @@
                 const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
                 if(res.ok) {
                     const textData = await res.text();
-                    products = textData ? JSON.parse(textData) : [];
+                    if (textData) {
+                        products = JSON.parse(textData);
+                    }
                 }
             } catch (e) {
-                console.log("Fehler beim Laden, erstelle Standardliste.");
-            }
-            
-            // Falls die Liste komplett leer ist, fügen wir einen Beispiel-Sticker ein, damit die Seite nicht weiß bleibt!
-            if (products.length === 0) {
-                products = [{
-                    id: "default",
-                    title: "Willkommen auf dem Marktplatz",
-                    desc: "Logge dich oben ein, um den ersten echten Sticker zu erstellen!",
-                    price: "0,00 €",
-                    img: ""
-                }];
+                console.log("Ladefehler...");
             }
             renderProducts();
         }
@@ -335,13 +331,19 @@
             const select = document.getElementById('sticker-select');
             if(!grid || !select) return;
 
+            if (products.length === 0) {
+                grid.innerHTML = '<p style="color: var(--text-muted);" id="noStickerTxt">Aktuell sind keine Sticker online. Erstelle jetzt den ersten!</p>';
+                select.innerHTML = "";
+                return;
+            }
+
             grid.innerHTML = "";
             select.innerHTML = "";
 
             products.forEach(p => {
                 grid.innerHTML += `
                     <div class="card">
-                        ${isOwner && p.id !== 'default' ? `<button class="delete-btn" onclick="deleteProduct('${p.id}')">❌ Löschen</button>` : ''}
+                        ${isOwner ? `<button class="delete-btn" onclick="deleteProduct('${p.id}')">❌ Löschen</button>` : ''}
                         <div class="card-img-container">
                             ${p.img ? `<img src="${p.img}" style="width:${p.zoom || 100}%; top:${p.y || 0}px;">` : `<span style="color:var(--text-muted)">Kein Bild</span>`}
                         </div>
@@ -353,9 +355,7 @@
                         </div>
                     </div>
                 `;
-                if(p.id !== 'default') {
-                    select.innerHTML += `<option value="${p.title} (${p.price})">${p.title} (${p.price})</option>`;
-                }
+                select.innerHTML += `<option value="${p.title} (${p.price})">${p.title} (${p.price})</option>`;
             });
         }
 
@@ -365,10 +365,8 @@
                     method: "POST",
                     body: JSON.stringify(products)
                 });
-                return true;
             } catch (e) {
-                alert("Cloud-Speicher-Fehler!");
-                return false;
+                console.error("Cloud-Sync fehlgeschlagen");
             }
         }
 
@@ -383,11 +381,12 @@
             if (!title || !priceVal) return alert("Bitte Name und Preis eingeben!");
             const formattedPrice = parseFloat(priceVal).toFixed(2).replace('.', ',') + " €";
 
-            saveBtn.innerText = "Bild wird hochgeladen...";
+            saveBtn.innerText = "Wird hochgeladen...";
             saveBtn.disabled = true;
 
             let uploadedImgUrl = "";
 
+            // Falls ein Bild ausgewählt wurde, laden wir es sofort hoch
             if (selectedFile) {
                 const formData = new FormData();
                 formData.append("image", selectedFile);
@@ -397,18 +396,16 @@
                         body: formData
                     });
                     const resData = await res.json();
-                    if(resData && resData.success && resData.data) {
+                    if(resData && resData.success) {
                         uploadedImgUrl = resData.data.url;
                     }
                 } catch(e) {
-                    console.error("Bild-Server Fehler.");
+                    console.log("Fehler beim Bild-Upload");
                 }
             }
 
-            // Falls der Standard-Platzhalter noch drin ist, löschen wir ihn vor dem ersten echten Sticker
-            products = products.filter(p => p.id !== 'default');
-
-            products.push({
+            // Neues Produkt erstellen
+            const newProduct = {
                 id: String(Date.now()),
                 title: title,
                 desc: desc,
@@ -416,24 +413,27 @@
                 img: uploadedImgUrl,
                 zoom: zoom,
                 y: y
-            });
+            };
 
-            const success = await saveToCloud();
-            if(success) {
-                alert("Erfolgreich erstellt und live geschaltet!");
-            }
+            // SOFORT lokal anzeigen, damit keine Wartezeit entsteht!
+            products.push(newProduct);
+            renderProducts();
 
+            // Im Hintergrund in die Cloud schieben
+            await saveToCloud();
+            
+            alert("Erfolgreich live geschaltet!");
             clearInputs();
-            await fetchProducts();
+            
             saveBtn.innerText = "Live schalten";
             saveBtn.disabled = false;
         }
 
         async function deleteProduct(id) {
             products = products.filter(p => p.id !== id);
+            renderProducts();
             await saveToCloud();
             alert("Sticker gelöscht!");
-            await fetchProducts();
         }
 
         function clearInputs() {
@@ -447,6 +447,7 @@
             selectedFile = null;
         }
 
+        // Direkt beim Start die Cloud abfragen
         fetchProducts();
     </script>
 </body>
